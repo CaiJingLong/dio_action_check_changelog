@@ -2,9 +2,9 @@ import * as core from '@actions/core'
 import {getInput} from '@actions/core'
 import {Octokit} from '@octokit/rest'
 
-export function client(): Octokit {
+export function client(token: string | null = ''): Octokit {
   // Get the GitHub token from the environment
-  const token = getInput('github-token')
+  token ??= getInput('github-token')
   if (!token) {
     throw new Error('No token found, please set github-token input.')
   }
@@ -28,4 +28,18 @@ export function checkPrContentIgnoreChangelog(content: string): boolean {
   }
 
   return true
+}
+
+export async function rerunWorkflow(
+  pullRequestNumber: number,
+  owner: string,
+  repo: string
+): Promise<void> {
+  const github = client()
+
+  const {data: checkSuites} = await github.checks.listForSuite({
+    owner,
+    repo,
+    check_suite_id: pullRequestNumber
+  })
 }

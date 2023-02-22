@@ -57,16 +57,18 @@ async function run(): Promise<void> {
       return
     }
 
-    // get issue or pull request number
-    const pullNumber = context.payload.pull_request?.number
-    if (!pullNumber) {
-      core.info('Not found pull request number, maybe not a pull request, skip')
-      return
-    }
-
     const event = context.eventName
 
     core.info(`The trigger event is ${event}`)
+
+    core.info(`The workflow is ${context.workflow}, run id is ${context.runId}`)
+
+    // get issue or pull request number
+    const pullNumber = context.payload.pull_request?.number
+    if (!pullNumber) {
+      checkIssueComment()
+      return
+    }
 
     core.info(`The pull request number is ${pullNumber}`)
     core.info(
@@ -104,6 +106,60 @@ async function run(): Promise<void> {
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
+}
+
+async function checkIssueComment(): Promise<void> {
+  const event = context.eventName
+  if (event !== 'issue_comment') {
+    core.info('Not issue comment, skip')
+    return
+  }
+
+  const {owner, repo} = context.repo
+
+  const issueNumber = context.payload.issue?.number
+  if (!issueNumber) {
+    core.info('Not found issue number, skip')
+    return
+  }
+
+  const github = client()
+  const issue = await github.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber
+  })
+
+  if (!issue.data.pull_request) {
+    core.info('Not pull request, skip')
+    return
+  }
+
+  const pullRequest = await github.pulls.get({
+    owner,
+    repo,
+    pull_number: issueNumber
+  })
+
+  if (pullRequest.data.state !== 'open') {
+    core.info('PR is not open, skip')
+    return
+  }
+
+  // Get check suite
+  const checkSuites = await github.checks.listSuitesForRef({
+    owner,
+    repo,
+    ref: pullRequest.data.head.sha
+  })
+
+  if (checkSuites.data.total_count === 0) {
+    core.info('Not found check suite, skip')
+    return
+  }
+
+  // for (const checkSuite of checkSuites.data.check_suites) {
+  // }
 }
 
 run()
