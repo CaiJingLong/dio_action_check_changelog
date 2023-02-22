@@ -91,14 +91,15 @@ function run() {
                 core.info('Not found owner or repo, skip');
                 return;
             }
+            const event = github_1.context.eventName;
+            core.info(`The trigger event is ${event}`);
+            core.info(`The workflow is ${github_1.context.workflow}, run id is ${github_1.context.runId}`);
             // get issue or pull request number
             const pullNumber = (_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.number;
             if (!pullNumber) {
-                core.info('Not found pull request number, maybe not a pull request, skip');
+                checkIssueComment();
                 return;
             }
-            const event = github_1.context.eventName;
-            core.info(`The trigger event is ${event}`);
             core.info(`The pull request number is ${pullNumber}`);
             core.info(`The url of pull request is ${(_b = github_1.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.html_url}`);
             const kit = (0, util_1.client)();
@@ -127,6 +128,42 @@ function run() {
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
+    });
+}
+function checkIssueComment() {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        const event = github_1.context.eventName;
+        if (event !== 'issue_comment') {
+            core.info('Not issue comment, skip');
+            return;
+        }
+        const { owner, repo } = github_1.context.repo;
+        const issueNumber = (_a = github_1.context.payload.issue) === null || _a === void 0 ? void 0 : _a.number;
+        if (!issueNumber) {
+            core.info('Not found issue number, skip');
+            return;
+        }
+        const github = (0, util_1.client)();
+        const issue = yield github.issues.get({
+            owner,
+            repo,
+            issue_number: issueNumber
+        });
+        if (!issue.data.pull_request) {
+            core.info('Not pull request, skip');
+            return;
+        }
+        const pullRequest = yield github.pulls.get({
+            owner,
+            repo,
+            pull_number: issueNumber
+        });
+        if (pullRequest.data.state !== 'open') {
+            core.info('PR is not open, skip');
+            return;
+        }
+        yield (0, util_1.rerunPrJobs)(owner, repo, issueNumber);
     });
 }
 run();
@@ -162,14 +199,23 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkPrContentIgnoreChangelog = exports.client = void 0;
+exports.rerunPrJobs = exports.checkPrContentIgnoreChangelog = exports.client = void 0;
 const core = __importStar(__nccwpck_require__(1680));
 const core_1 = __nccwpck_require__(1680);
 const rest_1 = __nccwpck_require__(3306);
-function client() {
+function client(token = '') {
     // Get the GitHub token from the environment
-    const token = (0, core_1.getInput)('github-token');
+    token !== null && token !== void 0 ? token : (token = (0, core_1.getInput)('github-token'));
     if (!token) {
         throw new Error('No token found, please set github-token input.');
     }
@@ -191,6 +237,47 @@ function checkPrContentIgnoreChangelog(content) {
     return true;
 }
 exports.checkPrContentIgnoreChangelog = checkPrContentIgnoreChangelog;
+function log(message) {
+    core.info(message);
+}
+function rerunPrJobs(owner, repo, prNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const github = client();
+        // get the PR
+        const { data: pullRequest } = yield github.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber
+        });
+        // Get check suites for the PR
+        const { data } = yield github.checks.listSuitesForRef({
+            owner,
+            repo,
+            ref: pullRequest.head.sha
+        });
+        const checkSuites = data.check_suites;
+        // Get the check runs for each check suite
+        for (const checkSuite of checkSuites) {
+            log(`Check suite ${checkSuite.id} has status ${checkSuite.status}`);
+            if (!checkSuite.pull_requests)
+                continue;
+            // Get runs for each check suite
+            for (const pr of checkSuite.pull_requests) {
+                const pullRequestUrl = `https://github.com/${owner}/${repo}/pull/${pr.number}`;
+                log(`The pr: ${pr.number}, url: ${pr.url}, html_url: ${pullRequestUrl}`);
+                if (pr.number === prNumber) {
+                    log(`Rerunning check suite ${checkSuite.id}`);
+                    yield github.checks.rerequestSuite({
+                        owner,
+                        repo,
+                        check_suite_id: checkSuite.id
+                    });
+                }
+            }
+        }
+    });
+}
+exports.rerunPrJobs = rerunPrJobs;
 
 
 /***/ }),

@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import {context} from '@actions/github'
-import {checkPrContentIgnoreChangelog, client} from './util'
+import {checkPrContentIgnoreChangelog, client, rerunPrJobs} from './util'
 
 async function haveIgnoreChangeLogContent(prNumber: number): Promise<boolean> {
   const {owner, repo} = context.repo
@@ -146,20 +146,7 @@ async function checkIssueComment(): Promise<void> {
     return
   }
 
-  // Get check suite
-  const checkSuites = await github.checks.listSuitesForRef({
-    owner,
-    repo,
-    ref: pullRequest.data.head.sha
-  })
-
-  if (checkSuites.data.total_count === 0) {
-    core.info('Not found check suite, skip')
-    return
-  }
-
-  // for (const checkSuite of checkSuites.data.check_suites) {
-  // }
+  await rerunPrJobs(owner, repo, issueNumber)
 }
 
 run()
