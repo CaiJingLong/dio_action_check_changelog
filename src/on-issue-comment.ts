@@ -1,6 +1,7 @@
 import {context} from '@actions/github'
-import {client, rerunPrJobs} from './util'
+import {client} from './util'
 import * as core from '@actions/core'
+import {rerunPrJobs} from './rerun-jobs'
 
 export async function onIssueComment(): Promise<void> {
   const event = context.eventName

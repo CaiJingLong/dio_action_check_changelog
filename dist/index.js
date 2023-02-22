@@ -192,6 +192,7 @@ exports.onIssueComment = void 0;
 const github_1 = __nccwpck_require__(1240);
 const util_1 = __nccwpck_require__(8636);
 const core = __importStar(__nccwpck_require__(1680));
+const rerun_jobs_1 = __nccwpck_require__(7002);
 function onIssueComment() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -225,10 +226,97 @@ function onIssueComment() {
             core.info('PR is not open, skip');
             return;
         }
-        yield (0, util_1.rerunPrJobs)(owner, repo, issueNumber);
+        yield (0, rerun_jobs_1.rerunPrJobs)(owner, repo, issueNumber);
     });
 }
 exports.onIssueComment = onIssueComment;
+
+
+/***/ }),
+
+/***/ 7002:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.rerunPrJobs = void 0;
+const util_1 = __nccwpck_require__(8636);
+const core = __importStar(__nccwpck_require__(1680));
+function log(message) {
+    core.info(message);
+}
+function rerunPrJobs(owner, repo, prNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const github = (0, util_1.client)();
+        // get the PR
+        const { data: pullRequest } = yield github.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber
+        });
+        // Get check suites for the PR
+        const { data } = yield github.checks.listSuitesForRef({
+            owner,
+            repo,
+            ref: pullRequest.head.sha
+        });
+        const checkSuites = data.check_suites;
+        // Get the check runs for each check suite
+        for (const checkSuite of checkSuites) {
+            log(`Check suite ${checkSuite.id} has status ${checkSuite.status}`);
+            if (!checkSuite.pull_requests)
+                continue;
+            // Get runs for each check suite
+            for (const pr of checkSuite.pull_requests) {
+                const pullRequestUrl = `https://github.com/${owner}/${repo}/pull/${pr.number}`;
+                log(`The pr: ${pr.number}, url: ${pr.url}, html_url: ${pullRequestUrl}`);
+                if (pr.number === prNumber) {
+                    log(`Rerunning check suite ${checkSuite.id}`);
+                    // Rerun the check suite
+                    yield github.checks.rerequestSuite({
+                        owner,
+                        repo,
+                        check_suite_id: checkSuite.id
+                    });
+                }
+            }
+        }
+    });
+}
+exports.rerunPrJobs = rerunPrJobs;
 
 
 /***/ }),
@@ -271,7 +359,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.haveIgnoreChangeLogContent = exports.rerunPrJobs = exports.checkPrContentIgnoreChangelog = exports.client = void 0;
+exports.haveIgnoreChangeLogContent = exports.checkPrContentIgnoreChangelog = exports.client = void 0;
 const core = __importStar(__nccwpck_require__(1680));
 const core_1 = __nccwpck_require__(1680);
 const github_1 = __nccwpck_require__(1240);
@@ -300,48 +388,6 @@ function checkPrContentIgnoreChangelog(content, regex = /Exempt CHANGELOG change
     return true;
 }
 exports.checkPrContentIgnoreChangelog = checkPrContentIgnoreChangelog;
-function log(message) {
-    core.info(message);
-}
-function rerunPrJobs(owner, repo, prNumber) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const github = client();
-        // get the PR
-        const { data: pullRequest } = yield github.pulls.get({
-            owner,
-            repo,
-            pull_number: prNumber
-        });
-        // Get check suites for the PR
-        const { data } = yield github.checks.listSuitesForRef({
-            owner,
-            repo,
-            ref: pullRequest.head.sha
-        });
-        const checkSuites = data.check_suites;
-        // Get the check runs for each check suite
-        for (const checkSuite of checkSuites) {
-            log(`Check suite ${checkSuite.id} has status ${checkSuite.status}`);
-            if (!checkSuite.pull_requests)
-                continue;
-            // Get runs for each check suite
-            for (const pr of checkSuite.pull_requests) {
-                const pullRequestUrl = `https://github.com/${owner}/${repo}/pull/${pr.number}`;
-                log(`The pr: ${pr.number}, url: ${pr.url}, html_url: ${pullRequestUrl}`);
-                if (pr.number === prNumber) {
-                    log(`Rerunning check suite ${checkSuite.id}`);
-                    // Rerun the check suite
-                    yield github.checks.rerequestSuite({
-                        owner,
-                        repo,
-                        check_suite_id: checkSuite.id
-                    });
-                }
-            }
-        }
-    });
-}
-exports.rerunPrJobs = rerunPrJobs;
 function haveIgnoreChangeLogContent(prNumber) {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
