@@ -285,9 +285,9 @@ function client(token) {
     return new rest_1.Octokit({ auth: `token ${token}` });
 }
 exports.client = client;
-function checkPrContentIgnoreChangelog(content) {
+function checkPrContentIgnoreChangelog(content, regex = /Exempt CHANGELOG changes: (.+)/) {
     // Exempt CHANGELOG changes: *
-    const regex = /Exempt CHANGELOG changes: (.+)/;
+    // const regex = /Exempt CHANGELOG changes: (.+)/
     core.debug(`The content is ${content}`);
     const match = content.match(regex);
     if (!match) {
@@ -369,10 +369,11 @@ function haveIgnoreChangeLogContent(prNumber) {
             });
         };
         for (const comment of comments) {
+            const regex = core.getInput('ignore-comment-regex');
             if (comment.body &&
                 ((_a = comment.user) === null || _a === void 0 ? void 0 : _a.login) &&
                 haveWritePermission((_b = comment.user) === null || _b === void 0 ? void 0 : _b.login) &&
-                checkPrContentIgnoreChangelog(comment.body)) {
+                checkPrContentIgnoreChangelog(comment.body, regex)) {
                 core.info('PR content have ignore command, skip check');
                 core.info(`The url of ignore comment: ${comment.html_url}`);
                 return true;

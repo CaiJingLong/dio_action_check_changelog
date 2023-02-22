@@ -12,9 +12,12 @@ export function client(token?: string): Octokit {
   return new Octokit({auth: `token ${token}`})
 }
 
-export function checkPrContentIgnoreChangelog(content: string): boolean {
+export function checkPrContentIgnoreChangelog(
+  content: string,
+  regex = /Exempt CHANGELOG changes: (.+)/
+): boolean {
   // Exempt CHANGELOG changes: *
-  const regex = /Exempt CHANGELOG changes: (.+)/
+  // const regex = /Exempt CHANGELOG changes: (.+)/
   core.debug(`The content is ${content}`)
   const match = content.match(regex)
 
@@ -112,11 +115,13 @@ export async function haveIgnoreChangeLogContent(
   }
 
   for (const comment of comments) {
+    const regex = core.getInput('ignore-comment-regex')
+
     if (
       comment.body &&
       comment.user?.login &&
       haveWritePermission(comment.user?.login) &&
-      checkPrContentIgnoreChangelog(comment.body)
+      checkPrContentIgnoreChangelog(comment.body, regex)
     ) {
       core.info('PR content have ignore command, skip check')
       core.info(`The url of ignore comment: ${comment.html_url}`)

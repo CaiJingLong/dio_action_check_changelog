@@ -5,6 +5,10 @@ inputs:
   github-token:
     required: true
     description: 'Github token'
+  ignore-comment-regexp:
+    required: false
+    description: 'Ignore comment regexp'
+    default: '/Exempt CHANGELOG changes: (.+)/'
 
 runs:
   using: 'node16'
