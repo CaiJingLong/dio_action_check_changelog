@@ -115,13 +115,14 @@ export async function haveIgnoreChangeLogContent(
   }
 
   for (const comment of comments) {
-    const regex = core.getInput('ignore-comment-regex')
+    const regex: string = core.getInput('ignore-comment-regex')
+    const regExp = new RegExp(regex)
 
     if (
       comment.body &&
       comment.user?.login &&
       haveWritePermission(comment.user?.login) &&
-      checkPrContentIgnoreChangelog(comment.body, regex)
+      checkPrContentIgnoreChangelog(comment.body, regExp)
     ) {
       core.info('PR content have ignore command, skip check')
       core.info(`The url of ignore comment: ${comment.html_url}`)

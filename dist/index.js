@@ -370,10 +370,11 @@ function haveIgnoreChangeLogContent(prNumber) {
         };
         for (const comment of comments) {
             const regex = core.getInput('ignore-comment-regex');
+            const regExp = new RegExp(regex);
             if (comment.body &&
                 ((_a = comment.user) === null || _a === void 0 ? void 0 : _a.login) &&
                 haveWritePermission((_b = comment.user) === null || _b === void 0 ? void 0 : _b.login) &&
-                checkPrContentIgnoreChangelog(comment.body, regex)) {
+                checkPrContentIgnoreChangelog(comment.body, regExp)) {
                 core.info('PR content have ignore command, skip check');
                 core.info(`The url of ignore comment: ${comment.html_url}`);
                 return true;
