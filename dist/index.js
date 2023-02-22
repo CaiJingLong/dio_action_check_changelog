@@ -213,7 +213,7 @@ exports.rerunPrJobs = exports.checkPrContentIgnoreChangelog = exports.client = v
 const core = __importStar(__nccwpck_require__(1680));
 const core_1 = __nccwpck_require__(1680);
 const rest_1 = __nccwpck_require__(3306);
-function client(token = '') {
+function client(token) {
     // Get the GitHub token from the environment
     token !== null && token !== void 0 ? token : (token = (0, core_1.getInput)('github-token'));
     if (!token) {

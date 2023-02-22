@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import {getInput} from '@actions/core'
 import {Octokit} from '@octokit/rest'
 
-export function client(token: string | null = ''): Octokit {
+export function client(token?: string): Octokit {
   // Get the GitHub token from the environment
   token ??= getInput('github-token')
   if (!token) {
