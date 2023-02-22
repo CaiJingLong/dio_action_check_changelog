@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import {getInput} from '@actions/core'
+import {context} from '@actions/github'
 import {Octokit} from '@octokit/rest'
 
 export function client(token?: string): Octokit {
@@ -69,6 +70,7 @@ export async function rerunPrJobs(
       log(`The pr: ${pr.number}, url: ${pr.url}, html_url: ${pullRequestUrl}`)
       if (pr.number === prNumber) {
         log(`Rerunning check suite ${checkSuite.id}`)
+        // Rerun the check suite
         await github.checks.rerequestSuite({
           owner,
           repo,
@@ -77,4 +79,50 @@ export async function rerunPrJobs(
       }
     }
   }
+}
+
+export async function haveIgnoreChangeLogContent(
+  prNumber: number
+): Promise<boolean> {
+  const {owner, repo} = context.repo
+  const kit = client()
+
+  const comments = await kit.paginate(kit.issues.listComments, {
+    owner,
+    repo,
+    issue_number: prNumber,
+    per_page: 100
+  })
+
+  // Get all have write permission user
+  const writePermissionUsers = await kit.paginate(kit.repos.listCollaborators, {
+    owner,
+    repo,
+    per_page: 100
+  })
+
+  const haveWritePermission = (name: string): boolean => {
+    return writePermissionUsers.some(
+      user =>
+        user.login === name &&
+        (user.permissions?.admin ||
+          user.permissions?.push ||
+          user.permissions?.maintain)
+    )
+  }
+
+  for (const comment of comments) {
+    if (
+      comment.body &&
+      comment.user?.login &&
+      haveWritePermission(comment.user?.login) &&
+      checkPrContentIgnoreChangelog(comment.body)
+    ) {
+      core.info('PR content have ignore command, skip check')
+      core.info(`The url of ignore comment: ${comment.html_url}`)
+      return true
+    }
+  }
+
+  return false
 }

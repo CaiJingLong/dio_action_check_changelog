@@ -1,6 +1,79 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 800:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkPullRequest = void 0;
+const github_1 = __nccwpck_require__(1240);
+const util_1 = __nccwpck_require__(8636);
+const core = __importStar(__nccwpck_require__(1680));
+function checkPullRequest(pullNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { owner, repo } = github_1.context.repo;
+        const kit = (0, util_1.client)();
+        const commitFiles = yield kit.pulls.listFiles({
+            owner,
+            pull_number: pullNumber,
+            repo,
+            per_page: 3000
+        });
+        if (commitFiles.data.length >= 3000) {
+            core.info('Too many files, skip');
+            return;
+        }
+        const changeLogFile = commitFiles.data.some(item => item.filename.includes('CHANGELOG.md') &&
+            (item.status === 'modified' || item.status === 'changed'));
+        if (!changeLogFile) {
+            // check pull comment content
+            if (yield (0, util_1.haveIgnoreChangeLogContent)(pullNumber)) {
+                return;
+            }
+            throw new Error('Please add CHANGELOG.md');
+        }
+        core.info('The pull request have CHANGELOG.md. Check success.');
+    });
+}
+exports.checkPullRequest = checkPullRequest;
+
+
+/***/ }),
+
 /***/ 3029:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -41,46 +114,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(1680));
 const github_1 = __nccwpck_require__(1240);
-const util_1 = __nccwpck_require__(8636);
-function haveIgnoreChangeLogContent(prNumber) {
-    var _a, _b;
-    return __awaiter(this, void 0, void 0, function* () {
-        const { owner, repo } = github_1.context.repo;
-        const kit = (0, util_1.client)();
-        const comments = yield kit.paginate(kit.issues.listComments, {
-            owner,
-            repo,
-            issue_number: prNumber,
-            per_page: 100
-        });
-        // Get all have write permission user
-        const writePermissionUsers = yield kit.paginate(kit.repos.listCollaborators, {
-            owner,
-            repo,
-            per_page: 100
-        });
-        const haveWritePermission = (name) => {
-            return writePermissionUsers.some(user => {
-                var _a, _b, _c;
-                return user.login === name &&
-                    (((_a = user.permissions) === null || _a === void 0 ? void 0 : _a.admin) ||
-                        ((_b = user.permissions) === null || _b === void 0 ? void 0 : _b.push) ||
-                        ((_c = user.permissions) === null || _c === void 0 ? void 0 : _c.maintain));
-            });
-        };
-        for (const comment of comments) {
-            if (comment.body &&
-                ((_a = comment.user) === null || _a === void 0 ? void 0 : _a.login) &&
-                haveWritePermission((_b = comment.user) === null || _b === void 0 ? void 0 : _b.login) &&
-                (0, util_1.checkPrContentIgnoreChangelog)(comment.body)) {
-                core.info('PR content have ignore command, skip check');
-                core.info(`The url of ignore comment: ${comment.html_url}`);
-                return true;
-            }
-        }
-        return false;
-    });
-}
+const check_pull_request_file_1 = __nccwpck_require__(800);
+const on_issue_comment_1 = __nccwpck_require__(7556);
 function run() {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
@@ -97,32 +132,12 @@ function run() {
             // get issue or pull request number
             const pullNumber = (_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.number;
             if (!pullNumber) {
-                checkIssueComment();
+                (0, on_issue_comment_1.onIssueComment)();
                 return;
             }
             core.info(`The pull request number is ${pullNumber}`);
             core.info(`The url of pull request is ${(_b = github_1.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.html_url}`);
-            const kit = (0, util_1.client)();
-            const commitFiles = yield kit.pulls.listFiles({
-                owner,
-                pull_number: pullNumber,
-                repo,
-                per_page: 3000
-            });
-            if (commitFiles.data.length >= 3000) {
-                core.info('Too many files, skip');
-                return;
-            }
-            const changeLogFile = commitFiles.data.some(item => item.filename.includes('CHANGELOG.md') &&
-                (item.status === 'modified' || item.status === 'changed'));
-            if (!changeLogFile) {
-                // check pull comment content
-                if (yield haveIgnoreChangeLogContent(pullNumber)) {
-                    return;
-                }
-                throw new Error('Please add CHANGELOG.md');
-            }
-            core.info('The pull request have CHANGELOG.md. Check success.');
+            yield (0, check_pull_request_file_1.checkPullRequest)(pullNumber);
         }
         catch (error) {
             if (error instanceof Error)
@@ -130,7 +145,54 @@ function run() {
         }
     });
 }
-function checkIssueComment() {
+run();
+
+
+/***/ }),
+
+/***/ 7556:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.onIssueComment = void 0;
+const github_1 = __nccwpck_require__(1240);
+const util_1 = __nccwpck_require__(8636);
+const core = __importStar(__nccwpck_require__(1680));
+function onIssueComment() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const event = github_1.context.eventName;
@@ -166,7 +228,7 @@ function checkIssueComment() {
         yield (0, util_1.rerunPrJobs)(owner, repo, issueNumber);
     });
 }
-run();
+exports.onIssueComment = onIssueComment;
 
 
 /***/ }),
@@ -209,9 +271,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.rerunPrJobs = exports.checkPrContentIgnoreChangelog = exports.client = void 0;
+exports.haveIgnoreChangeLogContent = exports.rerunPrJobs = exports.checkPrContentIgnoreChangelog = exports.client = void 0;
 const core = __importStar(__nccwpck_require__(1680));
 const core_1 = __nccwpck_require__(1680);
+const github_1 = __nccwpck_require__(1240);
 const rest_1 = __nccwpck_require__(3306);
 function client(token) {
     // Get the GitHub token from the environment
@@ -267,6 +330,7 @@ function rerunPrJobs(owner, repo, prNumber) {
                 log(`The pr: ${pr.number}, url: ${pr.url}, html_url: ${pullRequestUrl}`);
                 if (pr.number === prNumber) {
                     log(`Rerunning check suite ${checkSuite.id}`);
+                    // Rerun the check suite
                     yield github.checks.rerequestSuite({
                         owner,
                         repo,
@@ -278,6 +342,46 @@ function rerunPrJobs(owner, repo, prNumber) {
     });
 }
 exports.rerunPrJobs = rerunPrJobs;
+function haveIgnoreChangeLogContent(prNumber) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        const { owner, repo } = github_1.context.repo;
+        const kit = client();
+        const comments = yield kit.paginate(kit.issues.listComments, {
+            owner,
+            repo,
+            issue_number: prNumber,
+            per_page: 100
+        });
+        // Get all have write permission user
+        const writePermissionUsers = yield kit.paginate(kit.repos.listCollaborators, {
+            owner,
+            repo,
+            per_page: 100
+        });
+        const haveWritePermission = (name) => {
+            return writePermissionUsers.some(user => {
+                var _a, _b, _c;
+                return user.login === name &&
+                    (((_a = user.permissions) === null || _a === void 0 ? void 0 : _a.admin) ||
+                        ((_b = user.permissions) === null || _b === void 0 ? void 0 : _b.push) ||
+                        ((_c = user.permissions) === null || _c === void 0 ? void 0 : _c.maintain));
+            });
+        };
+        for (const comment of comments) {
+            if (comment.body &&
+                ((_a = comment.user) === null || _a === void 0 ? void 0 : _a.login) &&
+                haveWritePermission((_b = comment.user) === null || _b === void 0 ? void 0 : _b.login) &&
+                checkPrContentIgnoreChangelog(comment.body)) {
+                core.info('PR content have ignore command, skip check');
+                core.info(`The url of ignore comment: ${comment.html_url}`);
+                return true;
+            }
+        }
+        return false;
+    });
+}
+exports.haveIgnoreChangeLogContent = haveIgnoreChangeLogContent;
 
 
 /***/ }),
