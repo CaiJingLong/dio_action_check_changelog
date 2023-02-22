@@ -38,7 +38,7 @@ async function haveIgnoreChangeLogContent(prNumber: number): Promise<boolean> {
       checkPrContentIgnoreChangelog(comment.body)
     ) {
       core.info('PR content have ignore command, skip check')
-      core.info(`The url of comment: ${comment.html_url}`)
+      core.info(`The url of ignore comment: ${comment.html_url}`)
       return true
     }
   }
@@ -63,6 +63,15 @@ async function run(): Promise<void> {
       core.info('Not found pull request number, maybe not a pull request, skip')
       return
     }
+
+    const event = context.eventName
+
+    core.info(`The trigger event is ${event}`)
+
+    core.info(`The pull request number is ${pullNumber}`)
+    core.info(
+      `The url of pull request is ${context.payload.pull_request?.html_url}`
+    )
 
     const kit = client()
     const commitFiles = await kit.pulls.listFiles({
