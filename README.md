@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: cfug/dio_action_check_changelog@main
-        inputs:
+        with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
