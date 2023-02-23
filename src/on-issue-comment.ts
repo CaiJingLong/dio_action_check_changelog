@@ -1,7 +1,7 @@
 import {context} from '@actions/github'
 import {client} from './util'
 import * as core from '@actions/core'
-import {rerunPrJobs} from './rerun-jobs'
+import {rerunJobsBySameWorkflow, rerunPrJobs} from './rerun-jobs'
 
 export async function onIssueComment(): Promise<void> {
   const event = context.eventName
@@ -42,4 +42,5 @@ export async function onIssueComment(): Promise<void> {
   }
 
   await rerunPrJobs(owner, repo, issueNumber)
+  // await rerunJobsBySameWorkflow(owner, repo, issueNumber, context.workflow)
 }

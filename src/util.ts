@@ -3,9 +3,19 @@ import {getInput} from '@actions/core'
 import {context} from '@actions/github'
 import {Octokit} from '@octokit/rest'
 
-export function client(token?: string): Octokit {
+let octokit: Octokit | null = null
+
+export function mockClient(mock: Octokit): void {
+  octokit = mock
+}
+
+export function client(): Octokit {
+  if (octokit) {
+    return octokit
+  }
+
   // Get the GitHub token from the environment
-  token ??= getInput('github-token')
+  const token = getInput('github-token')
   if (!token) {
     throw new Error('No token found, please set github-token input.')
   }

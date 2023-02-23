@@ -5,6 +5,8 @@ import {onIssueComment} from './on-issue-comment'
 
 async function run(): Promise<void> {
   try {
+    core.info(`context: ${JSON.stringify(context, null, 2)}`)
+
     core.info('Start check pull request content')
 
     const {owner, repo} = context.repo

@@ -120,6 +120,7 @@ function run() {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            core.info(`context: ${JSON.stringify(github_1.context, null, 2)}`);
             core.info('Start check pull request content');
             const { owner, repo } = github_1.context.repo;
             if (!owner || !repo) {
@@ -272,7 +273,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.rerunPrJobs = void 0;
+exports.rerunJobsBySameWorkflow = exports.rerunPrJobs = void 0;
 const util_1 = __nccwpck_require__(8636);
 const core = __importStar(__nccwpck_require__(1680));
 function log(message) {
@@ -297,6 +298,7 @@ function rerunPrJobs(owner, repo, prNumber) {
         // Get the check runs for each check suite
         for (const checkSuite of checkSuites) {
             log(`Check suite ${checkSuite.id} has status ${checkSuite.status}`);
+            log(`Check suite ${checkSuite.id} has conclusion ${checkSuite.conclusion}`);
             if (!checkSuite.pull_requests)
                 continue;
             // Get runs for each check suite
@@ -311,12 +313,50 @@ function rerunPrJobs(owner, repo, prNumber) {
                         repo,
                         check_suite_id: checkSuite.id
                     });
+                    // // Get the check runs for the check suite
+                    // const {data: checkRuns} = await github.checks.listForRef({
+                    //   owner,
+                    //   repo,
+                    //   ref: pullRequest.head.sha,
+                    //   check_suite_id: checkSuite.id
+                    // })
+                    // // Check runs is same of current run
                 }
             }
         }
     });
 }
 exports.rerunPrJobs = rerunPrJobs;
+function rerunJobsBySameWorkflow(owner, repo, prNumber, workflow) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const github = (0, util_1.client)();
+        // get the PR
+        const { data: pullRequest } = yield github.pulls.get({
+            owner,
+            repo,
+            pull_number: prNumber
+        });
+        // Get check suites for the PR
+        const { data } = yield github.checks.listSuitesForRef({
+            owner,
+            repo,
+            ref: pullRequest.head.sha
+        });
+        // Get jobs for the PR and suite
+        const checkSuites = data.check_suites;
+        for (const checkSuite of checkSuites) {
+            const run = yield github.actions.listJobsForWorkflowRun({
+                owner,
+                repo,
+                run_id: checkSuite.id
+            });
+            // core.info(`run: \n ${JSON.stringify(run, null, 2)}`)
+            const workflowRunner = run.data.jobs.filter(job => job.name === workflow);
+            core.info(`workflowRunner: \n ${JSON.stringify(workflowRunner, null, 2)}`);
+        }
+    });
+}
+exports.rerunJobsBySameWorkflow = rerunJobsBySameWorkflow;
 
 
 /***/ }),
@@ -359,14 +399,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.haveIgnoreChangeLogContent = exports.checkPrContentIgnoreChangelog = exports.client = void 0;
+exports.haveIgnoreChangeLogContent = exports.checkPrContentIgnoreChangelog = exports.client = exports.mockClient = void 0;
 const core = __importStar(__nccwpck_require__(1680));
 const core_1 = __nccwpck_require__(1680);
 const github_1 = __nccwpck_require__(1240);
 const rest_1 = __nccwpck_require__(3306);
-function client(token) {
+let octokit = null;
+function mockClient(mock) {
+    octokit = mock;
+}
+exports.mockClient = mockClient;
+function client() {
+    if (octokit) {
+        return octokit;
+    }
     // Get the GitHub token from the environment
-    token !== null && token !== void 0 ? token : (token = (0, core_1.getInput)('github-token'));
+    const token = (0, core_1.getInput)('github-token');
     if (!token) {
         throw new Error('No token found, please set github-token input.');
     }
