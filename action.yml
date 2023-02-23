@@ -6,7 +6,7 @@ inputs:
     required: true
     description: 'Github token'
   ignore-comment-regexp:
-    required: false
+    required: true
     description: 'Ignore comment regexp'
     default: '/Exempt CHANGELOG changes: (.+)/'
 
