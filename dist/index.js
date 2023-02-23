@@ -52,14 +52,14 @@ function checkPullRequest(owner, repo, pullNumber) {
             per_page: 3000
         });
         if (commitFiles.data.length >= 3000) {
-            core.info('Too many files, skip');
+            core.info('Too many change files, skip');
             return;
         }
-        core.info('Check pull request files');
-        core.info(`Files: ${JSON.stringify(commitFiles.data)}`);
-        const changeLogFile = commitFiles.data.some(item => item.filename.includes('CHANGELOG.md') &&
+        core.info('Check pull request files have CHANGELOG.md');
+        const changeLogFile = commitFiles.data.filter(item => item.filename.includes('CHANGELOG.md') &&
             (item.status === 'modified' || item.status === 'changed'));
-        if (!changeLogFile) {
+        if (changeLogFile.length === 0) {
+            core.info('The pull request have not CHANGELOG.md.');
             // check pull comment content
             if (yield (0, util_1.haveIgnoreChangeLogContent)(owner, repo, pullNumber)) {
                 core.info('The action have ignore changelog comment. Check success.');
@@ -129,16 +129,15 @@ function run() {
                 return;
             }
             const event = github_1.context.eventName;
-            core.info(`The trigger event is ${event}`);
-            core.info(`The workflow is ${github_1.context.workflow}, run id is ${github_1.context.runId}`);
+            core.debug(`The trigger event is ${event}`);
+            core.debug(`The workflow is ${github_1.context.workflow}, run id is ${github_1.context.runId}`);
             // get issue or pull request number
             const pullNumber = (_a = github_1.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.number;
             if (!pullNumber) {
                 (0, on_issue_comment_1.onIssueComment)();
                 return;
             }
-            core.info(`The pull request number is ${pullNumber}`);
-            core.info(`The url of pull request is ${(_b = github_1.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.html_url}`);
+            core.info(`The pull request number is ${pullNumber}, url: ${(_b = github_1.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.html_url}`);
             yield (0, check_pull_request_file_1.checkPullRequest)(owner, repo, pullNumber);
         }
         catch (error) {
@@ -458,6 +457,7 @@ exports.checkPrContentIgnoreChangelog = checkPrContentIgnoreChangelog;
 function haveIgnoreChangeLogContent(owner, repo, prNumber) {
     var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
+        core.info('Start check pull comment content');
         const kit = client();
         const comments = yield kit.paginate(kit.issues.listComments, {
             owner,
@@ -465,12 +465,14 @@ function haveIgnoreChangeLogContent(owner, repo, prNumber) {
             issue_number: prNumber,
             per_page: 100
         });
+        core.info(`Get all comments ${comments.length}, start check.`);
         // Get all have write permission user
         const writePermissionUsers = yield kit.paginate(kit.repos.listCollaborators, {
             owner,
             repo,
             per_page: 100
         });
+        core.info(`Get all write permission users: ${writePermissionUsers.length}`);
         const haveWritePermission = (name) => {
             return writePermissionUsers.some(user => {
                 var _a, _b, _c;
@@ -482,7 +484,7 @@ function haveIgnoreChangeLogContent(owner, repo, prNumber) {
         };
         const regex = getRegex();
         const regExp = new RegExp(regex);
-        core.info(`need check regex: ${regex}, regExp: ${regExp}`);
+        core.info(`need check regExp: ${regExp}`);
         for (const comment of comments) {
             core.debug(`The comment url: ${comment.html_url}`);
             core.debug(`The comment body: ${comment.body}`);
@@ -494,12 +496,12 @@ function haveIgnoreChangeLogContent(owner, repo, prNumber) {
                 ((_d = comment.user) === null || _d === void 0 ? void 0 : _d.login) &&
                 haveWritePermission((_e = comment.user) === null || _e === void 0 ? void 0 : _e.login) &&
                 checkPrContentIgnoreChangelog(comment.body, regExp)) {
-                core.info(`The user is: ${(_f = comment.user) === null || _f === void 0 ? void 0 : _f.login} have write permission.`);
-                core.info('PR content have ignore command, skip check changelog.');
-                core.info(`The url of ignore comment: ${comment.html_url}`);
+                core.info(`The comment have ignore changelog content by user: ${(_f = comment.user) === null || _f === void 0 ? void 0 : _f.login}`);
+                core.info(`See the comment: ${comment.html_url}`);
                 return true;
             }
         }
+        core.info('No ignore changelog content found. Check failed.');
         return false;
     });
 }

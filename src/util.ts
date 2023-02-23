@@ -69,6 +69,8 @@ export async function haveIgnoreChangeLogContent(
   repo: string,
   prNumber: number
 ): Promise<boolean> {
+  core.info('Start check pull comment content')
+
   const kit = client()
 
   const comments = await kit.paginate(kit.issues.listComments, {
@@ -78,12 +80,16 @@ export async function haveIgnoreChangeLogContent(
     per_page: 100
   })
 
+  core.info(`Get all comments ${comments.length}, start check.`)
+
   // Get all have write permission user
   const writePermissionUsers = await kit.paginate(kit.repos.listCollaborators, {
     owner,
     repo,
     per_page: 100
   })
+
+  core.info(`Get all write permission users: ${writePermissionUsers.length}`)
 
   const haveWritePermission = (name: string): boolean => {
     return writePermissionUsers.some(
@@ -97,7 +103,7 @@ export async function haveIgnoreChangeLogContent(
 
   const regex: string = getRegex()
   const regExp = new RegExp(regex)
-  core.info(`need check regex: ${regex}, regExp: ${regExp}`)
+  core.info(`need check regExp: ${regExp}`)
 
   for (const comment of comments) {
     core.debug(`The comment url: ${comment.html_url}`)
@@ -117,12 +123,14 @@ export async function haveIgnoreChangeLogContent(
       haveWritePermission(comment.user?.login) &&
       checkPrContentIgnoreChangelog(comment.body, regExp)
     ) {
-      core.info(`The user is: ${comment.user?.login} have write permission.`)
-      core.info('PR content have ignore command, skip check changelog.')
-      core.info(`The url of ignore comment: ${comment.html_url}`)
+      core.info(
+        `The comment have ignore changelog content by user: ${comment.user?.login}`
+      )
+      core.info(`See the comment: ${comment.html_url}`)
       return true
     }
   }
 
+  core.info('No ignore changelog content found. Check failed.')
   return false
 }

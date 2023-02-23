@@ -18,9 +18,11 @@ async function run(): Promise<void> {
 
     const event = context.eventName
 
-    core.info(`The trigger event is ${event}`)
+    core.debug(`The trigger event is ${event}`)
 
-    core.info(`The workflow is ${context.workflow}, run id is ${context.runId}`)
+    core.debug(
+      `The workflow is ${context.workflow}, run id is ${context.runId}`
+    )
 
     // get issue or pull request number
     const pullNumber = context.payload.pull_request?.number
@@ -29,9 +31,8 @@ async function run(): Promise<void> {
       return
     }
 
-    core.info(`The pull request number is ${pullNumber}`)
     core.info(
-      `The url of pull request is ${context.payload.pull_request?.html_url}`
+      `The pull request number is ${pullNumber}, url: ${context.payload.pull_request?.html_url}`
     )
     await checkPullRequest(owner, repo, pullNumber)
   } catch (error) {

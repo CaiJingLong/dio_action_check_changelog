@@ -15,21 +15,20 @@ export async function checkPullRequest(
   })
 
   if (commitFiles.data.length >= 3000) {
-    core.info('Too many files, skip')
+    core.info('Too many change files, skip')
     return
   }
 
-  core.info('Check pull request files')
+  core.info('Check pull request files have CHANGELOG.md')
 
-  core.info(`Files: ${JSON.stringify(commitFiles.data)}`)
-
-  const changeLogFile = commitFiles.data.some(
+  const changeLogFile = commitFiles.data.filter(
     item =>
       item.filename.includes('CHANGELOG.md') &&
       (item.status === 'modified' || item.status === 'changed')
   )
 
-  if (!changeLogFile) {
+  if (changeLogFile.length === 0) {
+    core.info('The pull request have not CHANGELOG.md.')
     // check pull comment content
     if (await haveIgnoreChangeLogContent(owner, repo, pullNumber)) {
       core.info('The action have ignore changelog comment. Check success.')
