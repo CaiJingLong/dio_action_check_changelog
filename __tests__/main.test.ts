@@ -1,6 +1,5 @@
 import {expect, test, beforeAll} from '@jest/globals'
 import {checkPrContentIgnoreChangelog, mockClient} from '../src/util'
-import {rerunJobsBySameWorkflow} from '../src/rerun-jobs'
 import {env} from 'process'
 import {Octokit} from '@octokit/rest'
 
