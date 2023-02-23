@@ -1,9 +1,11 @@
-import {context} from '@actions/github'
 import {client, haveIgnoreChangeLogContent} from './util'
 import * as core from '@actions/core'
 
-export async function checkPullRequest(pullNumber: number): Promise<void> {
-  const {owner, repo} = context.repo
+export async function checkPullRequest(
+  owner: string,
+  repo: string,
+  pullNumber: number
+): Promise<void> {
   const kit = client()
   const commitFiles = await kit.pulls.listFiles({
     owner,
@@ -17,6 +19,10 @@ export async function checkPullRequest(pullNumber: number): Promise<void> {
     return
   }
 
+  core.info('Check pull request files')
+
+  core.info(`Files: ${JSON.stringify(commitFiles.data)}`)
+
   const changeLogFile = commitFiles.data.some(
     item =>
       item.filename.includes('CHANGELOG.md') &&
@@ -25,7 +31,7 @@ export async function checkPullRequest(pullNumber: number): Promise<void> {
 
   if (!changeLogFile) {
     // check pull comment content
-    if (await haveIgnoreChangeLogContent(pullNumber)) {
+    if (await haveIgnoreChangeLogContent(owner, repo, pullNumber)) {
       return
     }
     throw new Error('Please add CHANGELOG.md')

@@ -5,7 +5,7 @@ import {onIssueComment} from './on-issue-comment'
 
 async function run(): Promise<void> {
   try {
-    core.info(`context: ${JSON.stringify(context, null, 2)}`)
+    core.debug(`context: ${JSON.stringify(context, null, 2)}`)
 
     core.info('Start check pull request content')
 
@@ -33,9 +33,13 @@ async function run(): Promise<void> {
     core.info(
       `The url of pull request is ${context.payload.pull_request?.html_url}`
     )
-    await checkPullRequest(pullNumber)
+    await checkPullRequest(owner, repo, pullNumber)
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) {
+      core.setFailed(error.message)
+    } else {
+      core.setFailed(`Unknown error: ${error}`)
+    }
   }
 }
 

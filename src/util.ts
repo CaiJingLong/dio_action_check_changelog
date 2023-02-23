@@ -1,6 +1,5 @@
 import * as core from '@actions/core'
 import {getInput} from '@actions/core'
-import {context} from '@actions/github'
 import {Octokit} from '@octokit/rest'
 
 let octokit: Octokit | null = null
@@ -26,8 +25,6 @@ export function checkPrContentIgnoreChangelog(
   content: string,
   regex = /Exempt CHANGELOG changes: (.+)/
 ): boolean {
-  // Exempt CHANGELOG changes: *
-  // const regex = /Exempt CHANGELOG changes: (.+)/
   core.debug(`The content is ${content}`)
   const match = content.match(regex)
 
@@ -45,9 +42,10 @@ export function checkPrContentIgnoreChangelog(
 }
 
 export async function haveIgnoreChangeLogContent(
+  owner: string,
+  repo: string,
   prNumber: number
 ): Promise<boolean> {
-  const {owner, repo} = context.repo
   const kit = client()
 
   const comments = await kit.paginate(kit.issues.listComments, {
@@ -74,9 +72,21 @@ export async function haveIgnoreChangeLogContent(
     )
   }
 
+  const regex: string = core.getInput('ignore-comment-regex')
+  const regExp = new RegExp(regex)
+  core.info(`need check regex: ${regex}`)
+
   for (const comment of comments) {
-    const regex: string = core.getInput('ignore-comment-regex')
-    const regExp = new RegExp(regex)
+    core.debug(`The comment url: ${comment.html_url}`)
+    core.debug(`The comment body: ${comment.body}`)
+    core.debug(`The comment user: ${comment.user?.login}`)
+    if (comment.user?.login != null) {
+      core.debug(
+        `The comment user have write permission: ${haveWritePermission(
+          comment.user?.login
+        )}`
+      )
+    }
 
     if (
       comment.body &&
@@ -84,7 +94,8 @@ export async function haveIgnoreChangeLogContent(
       haveWritePermission(comment.user?.login) &&
       checkPrContentIgnoreChangelog(comment.body, regExp)
     ) {
-      core.info('PR content have ignore command, skip check')
+      core.info(`The user is: ${comment.user?.login} have write permission.`)
+      core.info('PR content have ignore command, skip check changelog.')
       core.info(`The url of ignore comment: ${comment.html_url}`)
       return true
     }

@@ -40,12 +40,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.checkPullRequest = void 0;
-const github_1 = __nccwpck_require__(1240);
 const util_1 = __nccwpck_require__(8636);
 const core = __importStar(__nccwpck_require__(1680));
-function checkPullRequest(pullNumber) {
+function checkPullRequest(owner, repo, pullNumber) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { owner, repo } = github_1.context.repo;
         const kit = (0, util_1.client)();
         const commitFiles = yield kit.pulls.listFiles({
             owner,
@@ -57,11 +55,13 @@ function checkPullRequest(pullNumber) {
             core.info('Too many files, skip');
             return;
         }
+        core.info('Check pull request files');
+        core.info(`Files: ${JSON.stringify(commitFiles.data)}`);
         const changeLogFile = commitFiles.data.some(item => item.filename.includes('CHANGELOG.md') &&
             (item.status === 'modified' || item.status === 'changed'));
         if (!changeLogFile) {
             // check pull comment content
-            if (yield (0, util_1.haveIgnoreChangeLogContent)(pullNumber)) {
+            if (yield (0, util_1.haveIgnoreChangeLogContent)(owner, repo, pullNumber)) {
                 return;
             }
             throw new Error('Please add CHANGELOG.md');
@@ -120,7 +120,7 @@ function run() {
     var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            core.info(`context: ${JSON.stringify(github_1.context, null, 2)}`);
+            core.debug(`context: ${JSON.stringify(github_1.context, null, 2)}`);
             core.info('Start check pull request content');
             const { owner, repo } = github_1.context.repo;
             if (!owner || !repo) {
@@ -138,11 +138,15 @@ function run() {
             }
             core.info(`The pull request number is ${pullNumber}`);
             core.info(`The url of pull request is ${(_b = github_1.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.html_url}`);
-            yield (0, check_pull_request_file_1.checkPullRequest)(pullNumber);
+            yield (0, check_pull_request_file_1.checkPullRequest)(owner, repo, pullNumber);
         }
         catch (error) {
-            if (error instanceof Error)
+            if (error instanceof Error) {
                 core.setFailed(error.message);
+            }
+            else {
+                core.setFailed(`Unknown error: ${error}`);
+            }
         }
     });
 }
@@ -399,7 +403,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.haveIgnoreChangeLogContent = exports.checkPrContentIgnoreChangelog = exports.client = exports.mockClient = void 0;
 const core = __importStar(__nccwpck_require__(1680));
 const core_1 = __nccwpck_require__(1680);
-const github_1 = __nccwpck_require__(1240);
 const rest_1 = __nccwpck_require__(3306);
 let octokit = null;
 function mockClient(mock) {
@@ -419,8 +422,6 @@ function client() {
 }
 exports.client = client;
 function checkPrContentIgnoreChangelog(content, regex = /Exempt CHANGELOG changes: (.+)/) {
-    // Exempt CHANGELOG changes: *
-    // const regex = /Exempt CHANGELOG changes: (.+)/
     core.debug(`The content is ${content}`);
     const match = content.match(regex);
     if (!match) {
@@ -433,10 +434,9 @@ function checkPrContentIgnoreChangelog(content, regex = /Exempt CHANGELOG change
     return true;
 }
 exports.checkPrContentIgnoreChangelog = checkPrContentIgnoreChangelog;
-function haveIgnoreChangeLogContent(prNumber) {
-    var _a, _b;
+function haveIgnoreChangeLogContent(owner, repo, prNumber) {
+    var _a, _b, _c, _d, _e, _f;
     return __awaiter(this, void 0, void 0, function* () {
-        const { owner, repo } = github_1.context.repo;
         const kit = client();
         const comments = yield kit.paginate(kit.issues.listComments, {
             owner,
@@ -459,14 +459,22 @@ function haveIgnoreChangeLogContent(prNumber) {
                         ((_c = user.permissions) === null || _c === void 0 ? void 0 : _c.maintain));
             });
         };
+        const regex = core.getInput('ignore-comment-regex');
+        const regExp = new RegExp(regex);
+        core.info(`need check regex: ${regex}`);
         for (const comment of comments) {
-            const regex = core.getInput('ignore-comment-regex');
-            const regExp = new RegExp(regex);
+            core.debug(`The comment url: ${comment.html_url}`);
+            core.debug(`The comment body: ${comment.body}`);
+            core.debug(`The comment user: ${(_a = comment.user) === null || _a === void 0 ? void 0 : _a.login}`);
+            if (((_b = comment.user) === null || _b === void 0 ? void 0 : _b.login) != null) {
+                core.debug(`The comment user have write permission: ${haveWritePermission((_c = comment.user) === null || _c === void 0 ? void 0 : _c.login)}`);
+            }
             if (comment.body &&
-                ((_a = comment.user) === null || _a === void 0 ? void 0 : _a.login) &&
-                haveWritePermission((_b = comment.user) === null || _b === void 0 ? void 0 : _b.login) &&
+                ((_d = comment.user) === null || _d === void 0 ? void 0 : _d.login) &&
+                haveWritePermission((_e = comment.user) === null || _e === void 0 ? void 0 : _e.login) &&
                 checkPrContentIgnoreChangelog(comment.body, regExp)) {
-                core.info('PR content have ignore command, skip check');
+                core.info(`The user is: ${(_f = comment.user) === null || _f === void 0 ? void 0 : _f.login} have write permission.`);
+                core.info('PR content have ignore command, skip check changelog.');
                 core.info(`The url of ignore comment: ${comment.html_url}`);
                 return true;
             }

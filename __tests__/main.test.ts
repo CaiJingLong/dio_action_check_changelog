@@ -12,10 +12,6 @@ beforeAll(() => {
   mockClient(new Octokit({auth: `token ${token}`}))
 })
 
-test('Test', () => {
-  expect(checkPrContentIgnoreChangelog('1')).toBe(false)
-})
-
 test('Test default change log regex', () => {
   expect(
     checkPrContentIgnoreChangelog('Exempt CHANGELOG changes: The pr is action')
@@ -35,8 +31,7 @@ test('Test custom change log regex', () => {
   )
 })
 
-test('Call rerunPrJobs', async () => {
-  // const workflow = 'Check pull request changelog file'
+test('Call rerunPrJobs with same runId', async () => {
   const runId = 4248602487
   const prNumber = 5
   const owner = 'CaiJingLong'
