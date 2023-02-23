@@ -482,7 +482,7 @@ function haveIgnoreChangeLogContent(owner, repo, prNumber) {
         };
         const regex = getRegex();
         const regExp = new RegExp(regex);
-        core.info(`need check regex: ${regex}`);
+        core.info(`need check regex: ${regex}, regExp: ${regExp}`);
         for (const comment of comments) {
             core.debug(`The comment url: ${comment.html_url}`);
             core.debug(`The comment body: ${comment.body}`);

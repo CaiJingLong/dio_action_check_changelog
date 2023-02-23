@@ -8,7 +8,7 @@ inputs:
   ignore-comment-regexp:
     required: true
     description: 'Ignore comment regexp'
-    default: '/Exempt CHANGELOG changes: (.+)/'
+    default: 'Exempt CHANGELOG changes: (.+)'
 
 runs:
   using: 'node16'
