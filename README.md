@@ -13,6 +13,7 @@ jobs:
       - uses: cfug/dio_action_check_changelog@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          ignore-comment-regexp: 'Exempt CHANGELOG changes: .+' # optional
 ```
 
 ## What does this action do?
