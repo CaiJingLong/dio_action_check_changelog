@@ -1,8 +1,8 @@
 {
-  "name": "typescript-action",
-  "version": "0.0.0",
+  "name": "dio_action_check_changelog",
+  "version": "1.0.0",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Github action for dio pull request changelog",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -15,14 +15,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/cfug/dio_action_check_changelog.git"
   },
   "keywords": [
     "actions",
     "node",
-    "setup"
+    "pull request",
+    "changelog"
   ],
-  "author": "",
+  "author": "cfug",
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.10.0",
