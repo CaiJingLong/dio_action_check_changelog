@@ -9,7 +9,7 @@ jobs:
   check-changelog:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: cfug/dio_action_check_changelog@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
