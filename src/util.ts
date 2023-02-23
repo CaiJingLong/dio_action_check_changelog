@@ -72,7 +72,10 @@ export async function haveIgnoreChangeLogContent(
     )
   }
 
-  const regex: string = core.getInput('ignore-comment-regex')
+  const regex: string = core.getInput('ignore-comment-regexp', {
+    required: true,
+    trimWhitespace: true
+  })
   const regExp = new RegExp(regex)
   core.info(`need check regex: ${regex}`)
 

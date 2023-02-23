@@ -459,7 +459,10 @@ function haveIgnoreChangeLogContent(owner, repo, prNumber) {
                         ((_c = user.permissions) === null || _c === void 0 ? void 0 : _c.maintain));
             });
         };
-        const regex = core.getInput('ignore-comment-regex');
+        const regex = core.getInput('ignore-comment-regexp', {
+            required: true,
+            trimWhitespace: true
+        });
         const regExp = new RegExp(regex);
         core.info(`need check regex: ${regex}`);
         for (const comment of comments) {
