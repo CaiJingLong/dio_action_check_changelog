@@ -21,6 +21,8 @@ test('Test default change log regex', () => {
   expect(
     checkPrContentIgnoreChangelog('Exempt CHANGELOG changes: The pr is action')
   ).toBe(true)
+
+  expect(checkPrContentIgnoreChangelog('Re check')).toBe(false)
 })
 
 test('Test custom change log regex', () => {
