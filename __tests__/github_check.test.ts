@@ -59,5 +59,5 @@ test('Call rerunPrJobs with same runId', async () => {
   const owner = 'CaiJingLong'
   const repo = 'test_template'
 
-  await rerunJobsBySameWorkflow(owner, repo, prNumber, runId)
+  await rerunJobsBySameWorkflow(owner, repo, prNumber, runId, true)
 })

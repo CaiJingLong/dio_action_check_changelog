@@ -324,7 +324,7 @@ function rerunPrJobs(owner, repo, prNumber) {
     });
 }
 exports.rerunPrJobs = rerunPrJobs;
-function rerunJobsBySameWorkflow(owner, repo, prNumber, runId) {
+function rerunJobsBySameWorkflow(owner, repo, prNumber, runId, showDebugInfo = false) {
     return __awaiter(this, void 0, void 0, function* () {
         const github = (0, util_1.client)();
         // get the PR
@@ -352,7 +352,8 @@ function rerunJobsBySameWorkflow(owner, repo, prNumber, runId) {
                 yield github.actions.reRunWorkflow({
                     owner,
                     repo,
-                    run_id: run.id
+                    run_id: run.id,
+                    enable_debug_logging: showDebugInfo
                 });
             }
         }
@@ -438,11 +439,15 @@ function getRegex() {
 }
 exports.getRegex = getRegex;
 function checkPrContentIgnoreChangelog(content, regex = /Exempt CHANGELOG changes: (.+)/) {
-    core.debug(`The content is ${content}`);
     const match = content.match(regex);
+    core.debug(`The match is ${match}`);
     if (!match) {
+        core.debug('No match');
+        core.debug(`The regex is ${regex}`);
+        core.debug(`The content is ${content}`);
         return false;
     }
+    core.debug(`The content is ${content}, matched with ${regex}`);
     const reason = match[1];
     if (reason) {
         core.info(`The ignore reason: ${reason}`);

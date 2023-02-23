@@ -42,12 +42,18 @@ export function checkPrContentIgnoreChangelog(
   content: string,
   regex = /Exempt CHANGELOG changes: (.+)/
 ): boolean {
-  core.debug(`The content is ${content}`)
   const match = content.match(regex)
 
+  core.debug(`The match is ${match}`)
+
   if (!match) {
+    core.debug('No match')
+    core.debug(`The regex is ${regex}`)
+    core.debug(`The content is ${content}`)
     return false
   }
+
+  core.debug(`The content is ${content}, matched with ${regex}`)
 
   const reason = match[1]
 

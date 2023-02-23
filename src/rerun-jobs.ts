@@ -55,7 +55,8 @@ export async function rerunJobsBySameWorkflow(
   owner: string,
   repo: string,
   prNumber: number,
-  runId: number
+  runId: number,
+  showDebugInfo = false
 ): Promise<void> {
   const github = client()
 
@@ -87,7 +88,8 @@ export async function rerunJobsBySameWorkflow(
       await github.actions.reRunWorkflow({
         owner,
         repo,
-        run_id: run.id
+        run_id: run.id,
+        enable_debug_logging: showDebugInfo
       })
     }
   }
