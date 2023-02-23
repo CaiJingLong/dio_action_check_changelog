@@ -227,7 +227,7 @@ function onIssueComment() {
             core.info('PR is not open, skip');
             return;
         }
-        yield (0, rerun_jobs_1.rerunPrJobs)(owner, repo, issueNumber);
+        yield (0, rerun_jobs_1.rerunJobsBySameWorkflow)(owner, repo, issueNumber, github_1.context.runId);
     });
 }
 exports.onIssueComment = onIssueComment;
@@ -313,21 +313,13 @@ function rerunPrJobs(owner, repo, prNumber) {
                         repo,
                         check_suite_id: checkSuite.id
                     });
-                    // // Get the check runs for the check suite
-                    // const {data: checkRuns} = await github.checks.listForRef({
-                    //   owner,
-                    //   repo,
-                    //   ref: pullRequest.head.sha,
-                    //   check_suite_id: checkSuite.id
-                    // })
-                    // // Check runs is same of current run
                 }
             }
         }
     });
 }
 exports.rerunPrJobs = rerunPrJobs;
-function rerunJobsBySameWorkflow(owner, repo, prNumber, workflow) {
+function rerunJobsBySameWorkflow(owner, repo, prNumber, runId) {
     return __awaiter(this, void 0, void 0, function* () {
         const github = (0, util_1.client)();
         // get the PR
@@ -336,23 +328,28 @@ function rerunJobsBySameWorkflow(owner, repo, prNumber, workflow) {
             repo,
             pull_number: prNumber
         });
-        // Get check suites for the PR
-        const { data } = yield github.checks.listSuitesForRef({
+        // Get workflow by run id
+        const { data: workflow } = yield github.actions.getWorkflowRun({
             owner,
             repo,
-            ref: pullRequest.head.sha
+            run_id: runId
         });
-        // Get jobs for the PR and suite
-        const checkSuites = data.check_suites;
-        for (const checkSuite of checkSuites) {
-            const run = yield github.actions.listJobsForWorkflowRun({
-                owner,
-                repo,
-                run_id: checkSuite.id
-            });
-            // core.info(`run: \n ${JSON.stringify(run, null, 2)}`)
-            const workflowRunner = run.data.jobs.filter(job => job.name === workflow);
-            core.info(`workflowRunner: \n ${JSON.stringify(workflowRunner, null, 2)}`);
+        if (!workflow)
+            return;
+        const runs = yield github.actions.listWorkflowRuns({
+            owner,
+            repo,
+            workflow_id: workflow.workflow_id,
+            branch: pullRequest.head.ref
+        });
+        for (const run of runs.data.workflow_runs) {
+            if (run.status === 'completed') {
+                yield github.actions.reRunWorkflow({
+                    owner,
+                    repo,
+                    run_id: run.id
+                });
+            }
         }
     });
 }

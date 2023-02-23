@@ -46,16 +46,6 @@ export async function rerunPrJobs(
           repo,
           check_suite_id: checkSuite.id
         })
-
-        // // Get the check runs for the check suite
-        // const {data: checkRuns} = await github.checks.listForRef({
-        //   owner,
-        //   repo,
-        //   ref: pullRequest.head.sha,
-        //   check_suite_id: checkSuite.id
-        // })
-
-        // // Check runs is same of current run
       }
     }
   }
@@ -65,7 +55,7 @@ export async function rerunJobsBySameWorkflow(
   owner: string,
   repo: string,
   prNumber: number,
-  workflow: string
+  runId: number
 ): Promise<void> {
   const github = client()
 
@@ -76,26 +66,29 @@ export async function rerunJobsBySameWorkflow(
     pull_number: prNumber
   })
 
-  // Get check suites for the PR
-  const {data} = await github.checks.listSuitesForRef({
+  // Get workflow by run id
+  const {data: workflow} = await github.actions.getWorkflowRun({
     owner,
     repo,
-    ref: pullRequest.head.sha
+    run_id: runId
   })
 
-  // Get jobs for the PR and suite
-  const checkSuites = data.check_suites
-  for (const checkSuite of checkSuites) {
-    const run = await github.actions.listJobsForWorkflowRun({
-      owner,
-      repo,
-      run_id: checkSuite.id
-    })
+  if (!workflow) return
 
-    // core.info(`run: \n ${JSON.stringify(run, null, 2)}`)
+  const runs = await github.actions.listWorkflowRuns({
+    owner,
+    repo,
+    workflow_id: workflow.workflow_id,
+    branch: pullRequest.head.ref
+  })
 
-    const workflowRunner = run.data.jobs.filter(job => job.name === workflow)
-
-    core.info(`workflowRunner: \n ${JSON.stringify(workflowRunner, null, 2)}`)
+  for (const run of runs.data.workflow_runs) {
+    if (run.status === 'completed') {
+      await github.actions.reRunWorkflow({
+        owner,
+        repo,
+        run_id: run.id
+      })
+    }
   }
 }

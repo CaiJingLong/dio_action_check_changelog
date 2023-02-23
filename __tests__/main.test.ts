@@ -1,7 +1,6 @@
 import {expect, test, beforeAll} from '@jest/globals'
 import {checkPrContentIgnoreChangelog, mockClient} from '../src/util'
 import {rerunJobsBySameWorkflow} from '../src/rerun-jobs'
-import * as core from '@actions/core'
 import {env} from 'process'
 import {Octokit} from '@octokit/rest'
 
@@ -37,10 +36,11 @@ test('Test custom change log regex', () => {
 })
 
 test('Call rerunPrJobs', async () => {
-  const workflow = 'Check pull request changelog file'
-  const prNumber = 3
+  // const workflow = 'Check pull request changelog file'
+  const runId = 4248602487
+  const prNumber = 5
   const owner = 'CaiJingLong'
   const repo = 'test_template'
 
-  await rerunJobsBySameWorkflow(owner, repo, prNumber, workflow)
+  await rerunJobsBySameWorkflow(owner, repo, prNumber, runId)
 })
