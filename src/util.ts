@@ -39,9 +39,10 @@ export function checkPrContentIgnoreChangelog(
 
   if (reason) {
     core.info(`The ignore reason: ${reason}`)
+    return true
   }
 
-  return true
+  return false
 }
 
 export async function haveIgnoreChangeLogContent(
