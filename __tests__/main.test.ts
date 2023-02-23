@@ -29,13 +29,11 @@ test('Test custom change log regex', () => {
   expect(checkPrContentIgnoreChangelog('ignore: changelog', customRegex)).toBe(
     true
   )
-})
 
-test('Call rerunPrJobs with same runId', async () => {
-  const runId = 4248602487
-  const prNumber = 5
-  const owner = 'CaiJingLong'
-  const repo = 'test_template'
-
-  await rerunJobsBySameWorkflow(owner, repo, prNumber, runId)
+  expect(
+    checkPrContentIgnoreChangelog(
+      "Exempt CHANGELOG changes: Don't need changelog",
+      /Exempt CHANGELOG changes: (.+)/
+    )
+  )
 })

@@ -62,6 +62,7 @@ function checkPullRequest(owner, repo, pullNumber) {
         if (!changeLogFile) {
             // check pull comment content
             if (yield (0, util_1.haveIgnoreChangeLogContent)(owner, repo, pullNumber)) {
+                core.info('The action have ignore changelog comment. Check success.');
                 return;
             }
             throw new Error('Please add CHANGELOG.md');
@@ -400,15 +401,20 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.haveIgnoreChangeLogContent = exports.checkPrContentIgnoreChangelog = exports.client = exports.mockClient = void 0;
+exports.haveIgnoreChangeLogContent = exports.checkPrContentIgnoreChangelog = exports.getRegex = exports.client = exports.mockRegexContent = exports.mockClient = void 0;
 const core = __importStar(__nccwpck_require__(1680));
 const core_1 = __nccwpck_require__(1680);
 const rest_1 = __nccwpck_require__(3306);
 let octokit = null;
+let mockRegex = null;
 function mockClient(mock) {
     octokit = mock;
 }
 exports.mockClient = mockClient;
+function mockRegexContent(regex) {
+    mockRegex = regex;
+}
+exports.mockRegexContent = mockRegexContent;
 function client() {
     if (octokit) {
         return octokit;
@@ -421,6 +427,16 @@ function client() {
     return new rest_1.Octokit({ auth: `token ${token}` });
 }
 exports.client = client;
+function getRegex() {
+    if (mockRegex) {
+        return mockRegex;
+    }
+    return core.getInput('ignore-comment-regexp', {
+        required: true,
+        trimWhitespace: true
+    });
+}
+exports.getRegex = getRegex;
 function checkPrContentIgnoreChangelog(content, regex = /Exempt CHANGELOG changes: (.+)/) {
     core.debug(`The content is ${content}`);
     const match = content.match(regex);
@@ -459,10 +475,7 @@ function haveIgnoreChangeLogContent(owner, repo, prNumber) {
                         ((_c = user.permissions) === null || _c === void 0 ? void 0 : _c.maintain));
             });
         };
-        const regex = core.getInput('ignore-comment-regexp', {
-            required: true,
-            trimWhitespace: true
-        });
+        const regex = getRegex();
         const regExp = new RegExp(regex);
         core.info(`need check regex: ${regex}`);
         for (const comment of comments) {

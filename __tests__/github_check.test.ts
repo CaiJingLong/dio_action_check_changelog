@@ -1,8 +1,14 @@
 import {beforeAll, expect, test} from '@jest/globals'
 import {Octokit} from '@octokit/rest'
 import {env} from 'process'
-import {checkPrContentIgnoreChangelog, client, mockClient} from '../src/util'
+import {
+  checkPrContentIgnoreChangelog,
+  client,
+  mockClient,
+  mockRegexContent
+} from '../src/util'
 import {checkPullRequest} from '../src/check-pull-request-file'
+import {rerunJobsBySameWorkflow} from '../src/rerun-jobs'
 
 const owner = 'CaiJingLong'
 const repo = 'test_template'
@@ -13,6 +19,7 @@ beforeAll(() => {
     throw new Error('No token found, please set github-token with env.')
   }
   mockClient(new Octokit({auth: `token ${token}`}))
+  mockRegexContent('Exempt CHANGELOG changes: (.+)')
 })
 
 test('Check ignore with comment', async () => {
@@ -44,4 +51,13 @@ test('check pull request with pull request', async () => {
       throw e
     }
   }
+})
+
+test('Call rerunPrJobs with same runId', async () => {
+  const runId = 4248602487
+  const prNumber = 5
+  const owner = 'CaiJingLong'
+  const repo = 'test_template'
+
+  await rerunJobsBySameWorkflow(owner, repo, prNumber, runId)
 })

@@ -32,6 +32,7 @@ export async function checkPullRequest(
   if (!changeLogFile) {
     // check pull comment content
     if (await haveIgnoreChangeLogContent(owner, repo, pullNumber)) {
+      core.info('The action have ignore changelog comment. Check success.')
       return
     }
     throw new Error('Please add CHANGELOG.md')

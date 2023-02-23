@@ -4,8 +4,14 @@ import {Octokit} from '@octokit/rest'
 
 let octokit: Octokit | null = null
 
+let mockRegex: string | null = null
+
 export function mockClient(mock: Octokit): void {
   octokit = mock
+}
+
+export function mockRegexContent(regex: string): void {
+  mockRegex = regex
 }
 
 export function client(): Octokit {
@@ -19,6 +25,17 @@ export function client(): Octokit {
     throw new Error('No token found, please set github-token input.')
   }
   return new Octokit({auth: `token ${token}`})
+}
+
+export function getRegex(): string {
+  if (mockRegex) {
+    return mockRegex
+  }
+
+  return core.getInput('ignore-comment-regexp', {
+    required: true,
+    trimWhitespace: true
+  })
 }
 
 export function checkPrContentIgnoreChangelog(
@@ -72,10 +89,7 @@ export async function haveIgnoreChangeLogContent(
     )
   }
 
-  const regex: string = core.getInput('ignore-comment-regexp', {
-    required: true,
-    trimWhitespace: true
-  })
+  const regex: string = getRegex()
   const regExp = new RegExp(regex)
   core.info(`need check regex: ${regex}`)
 
